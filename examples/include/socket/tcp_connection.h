@@ -19,6 +19,7 @@ class tcp_connection {
 
 public:
   class rw_awaitable {
+    // channel {fd, read_cb, write_cb }
     std::shared_ptr<channel> channel_;
     void *buffer_;
     int n_;

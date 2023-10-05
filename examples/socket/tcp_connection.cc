@@ -26,6 +26,7 @@ tcp_connection::connect_awaitable::connect_awaitable(
     std::shared_ptr<event_loop> loop, std::string const &hostname,
     uint16_t port)
     : rc_(-1) {
+  // 下面这堆代码放进`await_ready`也行
   struct addrinfo hints, *servinfo, *p;
   auto const port_str = std::to_string(port);
   ::bzero(&hints, sizeof(hints));
@@ -125,6 +126,7 @@ bool tcp_connection::rw_awaitable::await_ready() {
 }
 
 void tcp_connection::rw_awaitable::await_suspend(std::coroutine_handle<> h) {
+  // 向`event_loop`注册回调和fd，回调即执行`await_resume`
   auto &&callback = [h]() { h.resume(); };
   if (write_) {
     channel_->set_writable_callback(callback);
@@ -136,6 +138,8 @@ void tcp_connection::rw_awaitable::await_suspend(std::coroutine_handle<> h) {
 }
 
 int tcp_connection::rw_awaitable::await_resume() {
+  // `event_loop` poll到这个fd对应的event，执行`coroutine_handle::resume`走到这里
+  // `n_ >= 0`是`await_ready == true`的情况
   if (n_ < 0) {
     n_ = do_io();
     check_errno(n_, "failed to io after readable or writable");
